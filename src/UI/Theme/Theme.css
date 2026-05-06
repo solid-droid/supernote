@@ -1,0 +1,52 @@
+@import "./Theme-Light/colors.css";
+@import "./Theme-Dark/colors.css";
+
+body{
+  --color-background-1: var(--color-gray-1);
+  --color-background-2: var(--color-gray-3);
+  --color-background-3: var(--color-gray-4);
+
+  --color-text-hover: var(--color-gray-32);
+  --color-text-1: var(--color-gray-30);
+  --color-text-2: var(--color-gray-20);
+
+  --color-border-1: var(--color-gray-8);
+  --color-border-2: var(--color-gray-6);
+
+  /* Button */
+  --color-button-background: var(--color-gray-5);
+  --color-button-background-hover: var(--color-gray-10);
+  --color-button-text: var(--color-text);
+  --color-button-border: var(--color-border);
+
+  /* Input */
+  --color-input-background: var(--color-gray-8);
+  --color-input-value:var(--color-text);
+
+  /* Resize handle */
+  --color-resize-handle: var(--color-gray-6);
+
+
+  /* scroll bar */
+::-webkit-scrollbar {
+  width: 8px; /* Vertical scrollbar width */
+  height: 8px; /* Horizontal scrollbar height */
+}
+
+/* 2. The Track - the background area */
+::-webkit-scrollbar-track {
+  background: var(--color-gray-5); /* Light gray track */
+  border-radius: 10px;
+}
+
+/* 3. The Thumb - the draggable handle */
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-7); /* Darker thumb color */
+  border-radius: 10px;
+}
+
+/* 4. The Thumb on hover - optional subtle change */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-30); /* Even darker on hover */
+}
+}

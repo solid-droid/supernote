@@ -10,7 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+~
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +22,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+Sidecar/*/*.exe
+scripts/secrets
+Sidecar/src-python/build/python-sidecar/Analysis-00.toc
+Sidecar/src-python/build/python-sidecar/base_library.zip
+Sidecar/src-python/build/python-sidecar/localpycs/pyimod01_archive.pyc
+Sidecar/src-python/build/python-sidecar/localpycs/pyimod02_importers.pyc
+Sidecar/src-python/build/python-sidecar/localpycs/pyimod03_ctypes.pyc
+Sidecar/src-python/build/python-sidecar/localpycs/pyimod04_pywin32.pyc
+Sidecar/src-python/build/python-sidecar/localpycs/struct.pyc
+Sidecar/src-python/build/python-sidecar/PKG-00.toc
+Sidecar/src-python/build/python-sidecar/python-sidecar.pkg
+Sidecar/src-python/build/python-sidecar/PYZ-00.pyz
+Sidecar/src-python/build/python-sidecar/PYZ-00.toc
+Sidecar/src-python/build/python-sidecar/warn-python-sidecar.txt
+Sidecar/src-python/build/python-sidecar/xref-python-sidecar.html
+Sidecar/src-python/python-sidecar.spec
+Sidecar/src-python/build/python-sidecar/EXE-00.toc
+
+package-lock.json
+src-tauri/Cargo.lock
+~/.tauri/myapp.key
+*.exe
+/src-sidecars/src-python/build

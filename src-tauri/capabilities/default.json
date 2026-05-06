@@ -5,6 +5,65 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size",
+    "core:window:allow-center",
+    "opener:default",
+    "dialog:default",
+    "os:allow-platform",
+    "process:allow-restart",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "../src-sidecars/src-bun/bun-sidecar",
+          "sidecar": true
+        },
+        {
+          "name": "../src-sidecars/src-python/python-sidecar",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "../src-sidecars/src-bun/bun-sidecar",
+          "sidecar": true
+        },
+        {
+          "name": "../src-sidecars/src-python/python-sidecar",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-stdin-write",
+      "allow": [
+        {
+          "name": "../src-sidecars/src-bun/bun-sidecar",
+          "sidecar": true
+        },
+        {
+          "name": "../src-sidecars/src-python/python-sidecar",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-kill",
+      "allow": [
+        {
+          "name": "../src-sidecars/src-bun/bun-sidecar",
+          "sidecar": true
+        },
+        {
+          "name": "../src-sidecars/src-python/python-sidecar",
+          "sidecar": true
+        }
+      ]
+    }
   ]
 }

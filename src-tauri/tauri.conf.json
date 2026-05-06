@@ -15,12 +15,16 @@
       {
         "title": "supernote",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": false
       }
     ],
     "security": {
       "csp": null
     }
+  },
+  "plugins": {
+   "os": {}
   },
   "bundle": {
     "active": true,
@@ -30,7 +34,12 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "externalBin": [
+      "../src-sidecars/src-bun/bun-sidecar",
+      "../src-sidecars/src-python/python-sidecar"
     ]
   }
 }

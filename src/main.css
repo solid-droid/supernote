@@ -1,0 +1,20 @@
+ html{
+    --color-background-1: #121212;
+    --color-text-1: #ffffff;
+    #Loading-Screen{
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+ }
+
+ body{
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+    height: 100vh;
+    width: 100vw;
+}

@@ -1,0 +1,41 @@
+.theme-light {   
+    /* Near-White Backgrounds (Used for Base, Surfaces, Elevation) */
+    --color-gray-1: #FFFFFF; /* Pure White (Base app canvas) */
+    --color-gray-2: #FAFAFA; /* Slightly darker surface for elevated components */
+    --color-gray-3: #F5F5F5;
+    --color-gray-4: #EEEEEE;
+    --color-gray-5: #E8E8E8;
+    --color-gray-6: #E0E0E0;
+    --color-gray-7: #D8D8D8;
+    --color-gray-8: #CCCCCC;
+    --color-gray-9: #C0C0C0;
+    --color-gray-10: #B4B4B4;
+
+    /* Mid-Light Shades (Used for Subtle Borders, Input Fields, Low-Contrast Icons) */
+    --color-gray-11: #AAAAAA;
+    --color-gray-12: #9E9E9E;
+    --color-gray-13: #939393;
+    --color-gray-14: #878787;
+    --color-gray-15: #7B7B7B;
+    --color-gray-16: #707070;
+    --color-gray-17: #646464;
+    --color-gray-18: #595959;
+    --color-gray-19: #4D4D4D;
+    --color-gray-20: #424242;
+
+    /* Mid-Dark Shades (Used for Secondary Text, Subtitles, Helper Text) */
+    --color-gray-21: #363636;
+    --color-gray-22: #2B2B2B;
+    --color-gray-23: #222222;
+    --color-gray-24: #1E1E1E;
+    --color-gray-25: #1A1A1A;
+    --color-gray-26: #161616;
+    --color-gray-27: #121212;
+    --color-gray-28: #0F0F0F;
+
+    /* Near-Black Shades (Used for Primary Text, Icons, High Contrast Elements) */
+    --color-gray-29: #0C0C0C;
+    --color-gray-30: #090909;
+    --color-gray-31: #060606;
+    --color-gray-32: #000000; /* Pure Black (Highest contrast for primary text) */
+}
