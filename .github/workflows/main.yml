@@ -36,7 +36,6 @@ jobs:
             rust-target: ''
             tauri-args: ''
             type: 'desktop'
-            upload-updater: true
           # macOS ARM Build
           - os: macos-latest
             rust-target: 'aarch64-apple-darwin'

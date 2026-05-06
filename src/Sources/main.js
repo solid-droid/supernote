@@ -33,7 +33,6 @@ async function loadsamplebody() {
     const python_sidecar_button = $('<button class="action-btn">Spawn Python Sidecar</button>');
     const kill_sidecars_button = $('<button class="action-btn kill-btn">Kill All Sidecars</button>');
     const list_sidecars_button = $('<button class="action-btn">List Running Sidecars</button>');
-    const update_app_button = $('<button class="action-btn">Check for Updates</button>');
     const greet_button = $('<button class="action-btn">Greet Rust</button>');
     
     const output = $('<div id="output"></div>');
@@ -103,17 +102,6 @@ async function loadsamplebody() {
         logToOutput('All sidecars termination signal sent.', 'info');
     });
 
-    update_app_button.on('click', async () => {
-        logToOutput('Checking for updates...');
-        try {
-            await Tauri.updater.check(true);
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : (typeof e === 'string' ? e : JSON.stringify(e));
-            logToOutput(`Update check failed: ${errorMsg}`, 'error');
-            console.error('Update Error:', e);
-        }
-    });
-
     greet_button.on('click', async () => {
         if (window.__TAURI__) {
             try {
@@ -133,7 +121,6 @@ async function loadsamplebody() {
             python_sidecar_button, 
             list_sidecars_button,
             kill_sidecars_button, 
-            update_app_button, 
             greet_button
         ),
         output
