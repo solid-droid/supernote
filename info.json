@@ -1,0 +1,18 @@
+{
+    "name": "supernote",
+    "version": "0.1.1",
+    "tag": "v0.1.1",
+    "commit": "365fcd3639e39fac7609d789d2910c4c852fc680",
+    "date": "2026-05-06T21:38:18.572Z",
+    "urls": {
+        "repo": "https://github.com/solid-droid/supernote",
+        "latest_json": "https://github.com/solid-droid/supernote/releases/latest/download/latest.json",
+        "downloads": {
+            "windows": "https://github.com/solid-droid/supernote/releases/download/v0.1.1/supernote_0.1.1_x64_en-US.msi.zip",
+            "macos_x64": "https://github.com/solid-droid/supernote/releases/download/v0.1.1/supernote_0.1.1_x64.app.tar.gz",
+            "macos_arm": "https://github.com/solid-droid/supernote/releases/download/v0.1.1/supernote_0.1.1_aarch64.app.tar.gz",
+            "linux": "https://github.com/solid-droid/supernote/releases/download/v0.1.1/supernote_0.1.1_amd64.deb",
+            "android": "https://github.com/solid-droid/supernote/releases/download/v0.1.1/supernote-0.1.1.apk"
+        }
+    }
+}

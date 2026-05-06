@@ -1,9 +1,9 @@
 {
   "name": "supernote",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
- "scripts": {
+  "scripts": {
     "dev": "npm run build:sidecars && vite",
     "build": "npm run build:sidecars && tsc && vite build",
     "preview": "vite preview",
