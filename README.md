@@ -99,6 +99,24 @@ Supernote loads plugins dynamically using the `PluginService` located under [`sr
 2.  **Plugin Loading**: On startup, it reads the default plugin manifest [`plugin-package.js`](file:///c:/Files/Projects/SuperApps/supernote/src/Services/Plugin/plugin-package.js) and requests corresponding files from the registry server.
 3.  **Sandboxing & Dynamic Import**: It imports ES modules dynamically using `import(/* @vite-ignore */ url)` and appends related style assets dynamically into the document `<head>`.
 
+### v2 Plugin Runtime Contract
+
+- Supernote now consumes plugin metadata with `exports.logic`, `exports.template`, and `exports.styles`.
+- Plugin package entries can define default variants:
+
+```js
+{ slug: 'button', version: '1.0.1', variants: ['primary', 'secondary', 'danger'] }
+```
+
+- Variant selection is hybrid:
+    - default variants from `plugin-package.js`
+    - optional runtime variant override per load call
+
+### Direct Widget Instantiation
+
+- UI code now creates widget instances directly from plugin logic exports.
+- The button helper wrapper in the source page has been removed; components instantiate the loaded widget class directly.
+
 ---
 
 ## 🛠️ Developer Scripts

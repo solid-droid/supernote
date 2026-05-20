@@ -89,13 +89,30 @@ function getPackagePluginEntries() {
         : [];
 
     return packageEntries
-        .map((entry) => ({ slug: entry?.slug, version: entry?.version }))
+        .map((entry) => ({
+            slug: entry?.slug,
+            version: entry?.version,
+            variants: Array.isArray(entry?.variants) ? entry.variants : [],
+        }))
         .filter((entry) => entry.slug);
 }
 
-async function fetchPluginMetadata(slug, version) {
+function buildVariantsQuery(variants) {
+    const cleaned = Array.isArray(variants)
+        ? variants.map((value) => String(value || '').trim()).filter(Boolean)
+        : [];
+
+    if (cleaned.length === 0) {
+        return '';
+    }
+
+    return `variants=${encodeURIComponent(cleaned.join(','))}`;
+}
+
+async function fetchPluginMetadata(slug, version, options = {}) {
     const versionSuffix = version ? `/${version}` : '';
-    const requestUrl = buildPluginServerUrl(`/plugins/${slug}${versionSuffix}`);
+    const variantsQuery = buildVariantsQuery(options.variants);
+    const requestUrl = buildPluginServerUrl(`/plugins/${slug}${versionSuffix}${variantsQuery ? `?${variantsQuery}` : ''}`);
     const response = await fetch(requestUrl);
 
     if (!response.ok) {
@@ -121,14 +138,14 @@ async function fetchPluginMetadata(slug, version) {
     return payload;
 }
 
-async function fetchPluginMetadataWithFallback(slug, version) {
+async function fetchPluginMetadataWithFallback(slug, version, options = {}) {
     try {
-        return await fetchPluginMetadata(slug, version);
+        return await fetchPluginMetadata(slug, version, options);
     } catch (error) {
         // If a pinned version is missing after versioning changes, fallback to latest.
         if (version) {
             console.warn(`Falling back to latest for plugin ${slug}; requested version ${version} is unavailable.`);
-            return fetchPluginMetadata(slug);
+            return fetchPluginMetadata(slug, undefined, options);
         }
 
         throw error;
@@ -159,25 +176,16 @@ function resolveModuleSpecifier(entry) {
     return buildPluginServerUrl(entry.replace(/^\/+/, ''));
 }
 
-function inferEntryFromLegacy(metadata) {
-    const files = Array.isArray(metadata?.Files) ? metadata.Files : [];
-    const firstLocalJs = files.find((f) => {
-        if (!f || typeof f.path !== 'string') {
-            return false;
-        }
-        return (f.type || 'local') === 'local' && f.path.toLowerCase().endsWith('.js');
-    });
-
-    if (!firstLocalJs) {
-        return null;
+function getPluginLogicEntry(metadata) {
+    if (metadata?.exports?.logic?.url) {
+        return metadata.exports.logic.url;
     }
 
-    const slug = metadata?.slug;
-    if (slug) {
-        return `/plugins/${slug}/assets/${firstLocalJs.path.replace(/^\/+/, '')}`;
+    if (metadata?.entry) {
+        return metadata.entry;
     }
 
-    return firstLocalJs.path;
+    throw new Error(`Plugin ${metadata?.slug || 'unknown'} is missing exports.logic.url`);
 }
 
 function resolveAssetHref(assetPath, metadata) {
@@ -204,18 +212,19 @@ function resolveAssetHref(assetPath, metadata) {
     return buildPluginServerUrl(assetPath.replace(/^\/+/, ''));
 }
 
+function resolveStyleAssets(metadata) {
+    const styleExports = Array.isArray(metadata?.exports?.styles) ? metadata.exports.styles : [];
+    return styleExports
+        .map((entry) => entry?.url || entry?.path)
+        .filter((path) => typeof path === 'string' && path.length > 0);
+}
+
 function loadCssAssets(metadata, options = {}) {
     const forceReload = !!options.forceReload;
-    const files = Array.isArray(metadata?.Files) ? metadata.Files : [];
-    const cssFiles = files.filter((f) => {
-        if (!f || typeof f.path !== 'string') {
-            return false;
-        }
-        return f.path.toLowerCase().endsWith('.css');
-    });
+    const styleAssets = resolveStyleAssets(metadata);
 
-    for (const cssFile of cssFiles) {
-        const href = resolveAssetHref(cssFile.path, metadata);
+    for (const styleAsset of styleAssets) {
+        const href = resolveAssetHref(styleAsset, metadata);
         if (!href) {
             continue;
         }
@@ -242,27 +251,43 @@ async function loadPluginByMetadata(metadata, fallbackSlug, options = {}) {
 
     const forceReload = !!options.forceReload;
 
-    const entry = metadata.entry || metadata.module || metadata.url || metadata.path || inferEntryFromLegacy(metadata);
-    const moduleSpecifier = resolveModuleSpecifier(entry);
+    const moduleSpecifier = resolveModuleSpecifier(getPluginLogicEntry(metadata));
     const importSpecifier = forceReload ? withCacheBuster(moduleSpecifier) : moduleSpecifier;
 
     const loadedModule = await import(/* @vite-ignore */ importSpecifier);
-    const pluginImpl = loadedModule.default || loadedModule.plugin || loadedModule;
+    const pluginLogic = loadedModule.logic || loadedModule.default || loadedModule.plugin || loadedModule;
+    const pluginTemplate = loadedModule.template || null;
 
     loadCssAssets(metadata, { forceReload });
 
     const key = metadata.slug || fallbackSlug;
+    const selectedVariants = Array.isArray(options.variants) && options.variants.length > 0
+        ? options.variants
+        : (Array.isArray(metadata?.selectedVariants) ? metadata.selectedVariants : []);
+
     plugins[key] = {
         metadata,
-        implementation: pluginImpl,
+        selectedVariants,
+        exports: {
+            logic: pluginLogic,
+            template: pluginTemplate,
+            module: loadedModule,
+        },
+        implementation: pluginLogic,
     };
 
     return plugins[key];
 }
 
 async function loadPlugin(slug, version, options = {}) {
-    const metadata = await fetchPluginMetadataWithFallback(slug, version);
-    return loadPluginByMetadata(metadata, slug, options);
+    const selectedVariants = Array.isArray(options.variants) ? options.variants : [];
+    const metadata = await fetchPluginMetadataWithFallback(slug, version, {
+        variants: selectedVariants,
+    });
+    return loadPluginByMetadata(metadata, slug, {
+        ...options,
+        variants: selectedVariants,
+    });
 }
 
 async function loadDefaults() {
@@ -275,7 +300,9 @@ async function loadDefaults() {
         }
 
         try {
-            await loadPlugin(entry.slug, entry.version);
+            await loadPlugin(entry.slug, entry.version, {
+                variants: entry.variants,
+            });
         } catch (error) {
             console.warn(`Failed to load packaged plugin ${entry.slug}:`, error);
         }
@@ -293,11 +320,15 @@ async function reloadPlugins(options = {}) {
     for (const entry of entries) {
         try {
             const requestedVersion = versionMode === 'latest' ? undefined : entry.version;
-            const plugin = await loadPlugin(entry.slug, requestedVersion, { forceReload });
+            const plugin = await loadPlugin(entry.slug, requestedVersion, {
+                forceReload,
+                variants: entry.variants,
+            });
             if (plugin) {
                 loaded.push({
                     slug: plugin.metadata?.slug || entry.slug,
                     version: plugin.metadata?.version || entry.version,
+                    variants: plugin.selectedVariants || [],
                 });
             }
         } catch (error) {
@@ -364,6 +395,14 @@ function getPlugins() {
   return plugins;
 }
 
+const __testing = {
+        buildVariantsQuery,
+        resolveModuleSpecifier,
+        resolveStyleAssets,
+        resolveAssetHref,
+        getPluginLogicEntry,
+};
+
 export {
     loadPlugin,
     loadDefaults,
@@ -372,4 +411,5 @@ export {
     reloadPlugins,
     getPluginServerUrl,
     setPluginServerUrl,
+    __testing,
 }
