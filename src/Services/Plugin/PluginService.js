@@ -1,5 +1,66 @@
-const PLUGIN_SERVER_URL = 'http://localhost:3001';
 import defaultPluginPackage from './plugin-package.js';
+
+const DEFAULT_PLUGIN_SERVER_URL = 'http://localhost:3001';
+const PLUGIN_SERVER_OVERRIDE_KEY = 'supernote.pluginServerUrl';
+
+function normalizeBaseUrl(url) {
+    return String(url || '').replace(/\/+$/, '');
+}
+
+function resolveInitialPluginServerUrl() {
+    const envUrl = import.meta.env?.VITE_PLUGIN_SERVER_URL;
+    const storedUrl = localStorage.getItem(PLUGIN_SERVER_OVERRIDE_KEY);
+    const explicitUrl = storedUrl || envUrl;
+
+    let base = explicitUrl;
+    if (!base) {
+        const host = window.location.hostname;
+        if (host && host !== 'localhost' && host !== '127.0.0.1') {
+            base = `http://${host}:3001`;
+        }
+    }
+
+    base = normalizeBaseUrl(base || DEFAULT_PLUGIN_SERVER_URL);
+
+    // Android emulators cannot reach host machine via localhost.
+    if (/Android/i.test(navigator.userAgent)) {
+        try {
+            const parsed = new URL(base);
+            if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+                parsed.hostname = '10.0.2.2';
+                return normalizeBaseUrl(parsed.toString());
+            }
+        } catch {
+            // Ignore malformed override and fall back to base.
+        }
+    }
+
+    return base;
+}
+
+let pluginServerUrl = resolveInitialPluginServerUrl();
+
+function getPluginServerUrl() {
+    return pluginServerUrl;
+}
+
+function setPluginServerUrl(url, options = {}) {
+    pluginServerUrl = normalizeBaseUrl(url || DEFAULT_PLUGIN_SERVER_URL);
+
+    if (options.persist !== false) {
+        localStorage.setItem(PLUGIN_SERVER_OVERRIDE_KEY, pluginServerUrl);
+    }
+
+    return pluginServerUrl;
+}
+
+function buildPluginServerUrl(pathname = '') {
+    if (!pathname) {
+        return getPluginServerUrl();
+    }
+
+    return `${getPluginServerUrl()}${pathname.startsWith('/') ? '' : '/'}${pathname}`;
+}
 
 let plugins = {};
 const loadedStyleHrefs = new Set();
@@ -34,7 +95,7 @@ function getPackagePluginEntries() {
 
 async function fetchPluginMetadata(slug, version) {
     const versionSuffix = version ? `/${version}` : '';
-    const response = await fetch(`${PLUGIN_SERVER_URL}/plugins/${slug}${versionSuffix}`);
+    const response = await fetch(buildPluginServerUrl(`/plugins/${slug}${versionSuffix}`));
 
     if (!response.ok) {
         throw new Error(`Failed to fetch plugin metadata for ${slug}${version ? `@${version}` : ''}`);
@@ -64,16 +125,6 @@ async function fetchPluginMetadataWithFallback(slug, version) {
     }
 }
 
-async function fetchPluginMetadataByUrl(url) {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch plugin metadata from ${url}`);
-    }
-
-    return response.json();
-}
-
 function resolveModuleSpecifier(entry) {
     if (!entry || typeof entry !== 'string') {
         throw new Error('Plugin metadata is missing a valid module entry.');
@@ -84,18 +135,18 @@ function resolveModuleSpecifier(entry) {
     }
 
     if (entry.startsWith('/plugin-assets/')) {
-        return `${PLUGIN_SERVER_URL}${entry}`;
+        return buildPluginServerUrl(entry);
     }
 
     if (entry.startsWith('/plugins/')) {
-        return `${PLUGIN_SERVER_URL}${entry}`;
+        return buildPluginServerUrl(entry);
     }
 
     if (entry.startsWith('/')) {
         return `${window.location.origin}${entry}`;
     }
 
-    return `${PLUGIN_SERVER_URL}/${entry.replace(/^\/+/, '')}`;
+    return buildPluginServerUrl(entry.replace(/^\/+/, ''));
 }
 
 function inferEntryFromLegacy(metadata) {
@@ -129,18 +180,18 @@ function resolveAssetHref(assetPath, metadata) {
     }
 
     if (assetPath.startsWith('/plugin-assets/')) {
-        return `${PLUGIN_SERVER_URL}${assetPath}`;
+        return buildPluginServerUrl(assetPath);
     }
 
     if (assetPath.startsWith('/')) {
-        return `${PLUGIN_SERVER_URL}${assetPath}`;
+        return buildPluginServerUrl(assetPath);
     }
 
     if (metadata?.slug) {
-        return `${PLUGIN_SERVER_URL}/plugins/${metadata.slug}/assets/${assetPath.replace(/^\/+/, '')}`;
+        return buildPluginServerUrl(`/plugins/${metadata.slug}/assets/${assetPath.replace(/^\/+/, '')}`);
     }
 
-    return `${PLUGIN_SERVER_URL}/${assetPath.replace(/^\/+/, '')}`;
+    return buildPluginServerUrl(assetPath.replace(/^\/+/, ''));
 }
 
 function loadCssAssets(metadata, options = {}) {
@@ -309,4 +360,6 @@ export {
     getPlugins,
     updatePlugins,
     reloadPlugins,
+    getPluginServerUrl,
+    setPluginServerUrl,
 }
