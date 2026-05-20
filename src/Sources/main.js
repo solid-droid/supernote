@@ -138,9 +138,13 @@ async function loadsamplebody() {
                 forceReload: true,
             });
 
+            const pluginList = (reloadResult.entries || [])
+                .map((entry) => `${entry.slug}@${entry.version || 'latest'}`)
+                .join('\n');
+
             await loadsamplebody();
             await Tauri.services.notify(
-                `Reloaded ${reloadResult.count} configured plugins using latest available versions.`,
+                `Reloaded ${reloadResult.count} configured plugins using latest available versions.\n\n${pluginList || 'No plugins loaded.'}`,
                 { title: 'Plugins Updated', kind: 'info' }
             );
         } catch (error) {
@@ -159,9 +163,13 @@ async function loadsamplebody() {
                 forceReload: true,
             });
 
+            const pluginList = (reloadResult.entries || [])
+                .map((entry) => `${entry.slug}@${entry.version || 'latest'}`)
+                .join('\n');
+
             await loadsamplebody();
             await Tauri.services.notify(
-                `Reloaded ${reloadResult.count} configured plugins using package versions.`,
+                `Reloaded ${reloadResult.count} configured plugins using package versions.\n\n${pluginList || 'No plugins loaded.'}`,
                 { title: 'UI Reloaded', kind: 'info' }
             );
         } catch (error) {
