@@ -1,5 +1,5 @@
 import './main.css';
-import { loadDefaults, getPlugins } from '../Services/Plugin/PluginService.js';
+import { loadDefaults, getPlugins, updatePlugins } from '../Services/Plugin/PluginService.js';
 
 export async function start() {
     await loadDefaults();
@@ -30,12 +30,6 @@ function createBasicUI() {
 
 async function loadsamplebody() {
     const { Tauri, Log } = window.CHAMBER;
-
-    const bun_sidecar_button = createActionButton('Spawn Bun Sidecar');
-    const python_sidecar_button = createActionButton('Spawn Python Sidecar');
-    const kill_sidecars_button = createActionButton('Kill All Sidecars', { className: 'kill-btn' });
-    const list_sidecars_button = createActionButton('List Running Sidecars');
-    const greet_button = createActionButton('Greet Rust');
     
     const output = $('<div id="output"></div>');
 
@@ -58,7 +52,9 @@ async function loadsamplebody() {
         Log[type]?.(msg);
     };
 
-    bun_sidecar_button.on('click', async () => {
+    const bun_sidecar_button = createActionButton({
+        label: 'Spawn Bun Sidecar',
+        onClick: async () => {
         try {
             logToOutput('Spawning Bun sidecar...');
             const handle = await Tauri.sidecar.bun({
@@ -70,9 +66,12 @@ async function loadsamplebody() {
         } catch (e) {
             logToOutput(`Failed to spawn Bun: ${e.message}`, 'error');
         }
+    }
     });
 
-    python_sidecar_button.on('click', async () => {
+    const python_sidecar_button = createActionButton({
+        label: 'Spawn Python Sidecar',
+        onClick: async () => {
         try {
             logToOutput('Spawning Python sidecar...');
             const handle = await Tauri.sidecar.python({
@@ -84,9 +83,13 @@ async function loadsamplebody() {
         } catch (e) {
             logToOutput(`Failed to spawn Python: ${e.message}`, 'error');
         }
+    }
     });
 
-    list_sidecars_button.on('click', () => {
+    const list_sidecars_button = createActionButton({
+        label: 'List Running Sidecars',
+        variant: 'secondary',
+        onClick: () => {
         const instances = Tauri.sidecar.list();
         if (instances.length === 0) {
             logToOutput('No sidecars currently running.', 'warn');
@@ -96,15 +99,22 @@ async function loadsamplebody() {
                 logToOutput(`- ID: ${inst.id} | Program: ${inst.program} | PID: ${inst.pid}`, 'success');
             });
         }
+    }
     });
 
-    kill_sidecars_button.on('click', async () => {
+    const kill_sidecars_button = createActionButton({
+        label: 'Kill All Sidecars',
+        variant: 'danger',
+        onClick: async () => {
         logToOutput('Killing all sidecars...', 'warn');
         await Tauri.sidecar.killAll();
         logToOutput('All sidecars termination signal sent.', 'info');
+    }
     });
 
-    greet_button.on('click', async () => {
+    const greet_button = createActionButton({
+        label: 'Greet Rust',
+        onClick: async () => {
         if (window.__TAURI__) {
             try {
                 const response = await window.__TAURI__.core.invoke('greet', { name: 'Chamber User' });
@@ -115,6 +125,37 @@ async function loadsamplebody() {
         } else {
             logToOutput('Tauri not detected.', 'error');
         }
+    }
+    });
+
+    const update_plugins_button = createActionButton({
+        label: 'Update Plugins',
+        variant: 'secondary',
+        onClick: async () => {
+        try {
+            const configuredChoice = await Tauri.services.notify(
+                'Generate plugin package using currently configured versions?\nChoose No to use latest versions from server.',
+                { title: 'Update Plugins', kind: 'info' },
+                true
+            );
+
+            const useConfiguredVersions = !!configuredChoice;
+            logToOutput(
+                `Refreshing plugin metadata and generating manifest (${useConfiguredVersions ? 'configured' : 'latest'})...`,
+                'info'
+            );
+            const result = await updatePlugins({
+                useConfiguredVersions,
+                filename: 'plugin-package.generated.js',
+            });
+            logToOutput(
+                `Plugin package generated (${result.mode}) with ${result.count} entries: ${result.filename}`,
+                'success'
+            );
+        } catch (error) {
+            logToOutput(`Plugin update failed: ${error?.message || error}`, 'error');
+        }
+    }
     });
 
     DOM.body.empty().append(
@@ -123,13 +164,15 @@ async function loadsamplebody() {
             python_sidecar_button, 
             list_sidecars_button,
             kill_sidecars_button, 
-            greet_button
+            greet_button,
+            update_plugins_button
         ),
         output
     );
 }
 
-function createActionButton(label, options = {}) {
+function createActionButton(options = {}) {
+    const label = options.label || 'Button';
     const plugin = getPlugins().button?.implementation;
 
     if (plugin) {
@@ -137,19 +180,16 @@ function createActionButton(label, options = {}) {
         const instance = new ButtonClass({
             label,
             variant: options.variant || 'primary',
+            disabled: !!options.disabled,
+            onClick: options.onClick || null,
         });
 
-        const button = $(instance.element);
-        button.addClass('action-btn');
-        if (options.className) {
-            button.addClass(options.className);
-        }
-        return button;
+        return $(instance.element);
     }
 
-    const button = $('<button class="action-btn"></button>').text(label);
-    if (options.className) {
-        button.addClass(options.className);
+    const button = $('<button></button>').text(label);
+    if (options.onClick) {
+        button.on('click', options.onClick);
     }
     return button;
 }

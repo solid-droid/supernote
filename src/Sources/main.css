@@ -45,29 +45,6 @@
         justify-content: center;
     }
 
-    .action-btn {
-        padding: 8px 16px;
-        background: #007acc;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-    }
-
-    .action-btn:hover {
-        background: #005a9e;
-    }
-
-    .kill-btn {
-        background: #d13438;
-    }
-
-    .kill-btn:hover {
-        background: #a4262c;
-    }
-
     #output {
         flex: 1;
         width: 100%;
