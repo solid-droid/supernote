@@ -1,6 +1,8 @@
 import './main.css';
+import { loadDefaults, getPlugins } from '../Services/Plugin/PluginService.js';
 
 export async function start() {
+    await loadDefaults();
     createBasicUI();
 }
 
@@ -29,11 +31,11 @@ function createBasicUI() {
 async function loadsamplebody() {
     const { Tauri, Log } = window.CHAMBER;
 
-    const bun_sidecar_button = $('<button class="action-btn">Spawn Bun Sidecar</button>');
-    const python_sidecar_button = $('<button class="action-btn">Spawn Python Sidecar</button>');
-    const kill_sidecars_button = $('<button class="action-btn kill-btn">Kill All Sidecars</button>');
-    const list_sidecars_button = $('<button class="action-btn">List Running Sidecars</button>');
-    const greet_button = $('<button class="action-btn">Greet Rust</button>');
+    const bun_sidecar_button = createActionButton('Spawn Bun Sidecar');
+    const python_sidecar_button = createActionButton('Spawn Python Sidecar');
+    const kill_sidecars_button = createActionButton('Kill All Sidecars', { className: 'kill-btn' });
+    const list_sidecars_button = createActionButton('List Running Sidecars');
+    const greet_button = createActionButton('Greet Rust');
     
     const output = $('<div id="output"></div>');
 
@@ -125,4 +127,29 @@ async function loadsamplebody() {
         ),
         output
     );
+}
+
+function createActionButton(label, options = {}) {
+    const plugin = getPlugins().button?.implementation;
+
+    if (plugin) {
+        const ButtonClass = plugin.default || plugin;
+        const instance = new ButtonClass({
+            label,
+            variant: options.variant || 'primary',
+        });
+
+        const button = $(instance.element);
+        button.addClass('action-btn');
+        if (options.className) {
+            button.addClass(options.className);
+        }
+        return button;
+    }
+
+    const button = $('<button class="action-btn"></button>').text(label);
+    if (options.className) {
+        button.addClass(options.className);
+    }
+    return button;
 }
