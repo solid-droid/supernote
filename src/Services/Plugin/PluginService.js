@@ -219,43 +219,10 @@ async function loadDefaults() {
             console.warn(`Failed to load packaged plugin ${entry.slug}:`, error);
         }
     }
-
-    if (plugins.button) {
-        return;
-    }
-
-    // Fallback: load button via Design System discovery.
-    const designSystemMeta = await fetchPluginMetadata('design-system');
-    const buttonDS = designSystemMeta?.widgets?.find((x) => x.slug === 'button');
-
-    if (!buttonDS) {
-        return;
-    }
-
-    let buttonWidget = null;
-
-    if (buttonDS.meta) {
-        const metaUrl = buttonDS.meta.startsWith('http')
-            ? buttonDS.meta
-            : `${PLUGIN_SERVER_URL}${buttonDS.meta.startsWith('/') ? '' : '/'}${buttonDS.meta}`;
-        const buttonMeta = await fetchPluginMetadataByUrl(metaUrl);
-        buttonWidget = await loadPluginByMetadata(
-            {
-                ...buttonMeta,
-                slug: buttonMeta.slug || buttonDS.slug,
-            },
-            buttonDS.slug
-        );
-    } else {
-        buttonWidget = await loadPlugin(buttonDS.slug, buttonDS.version);
-    }
-
-    if (buttonWidget) {
-        plugins.button = buttonWidget;
-    }
 }
 
 async function reloadPlugins(options = {}) {
+    const versionMode = options.versionMode === 'latest' ? 'latest' : 'configured';
     const forceReload = options.forceReload !== false;
     const entries = getPackagePluginEntries();
 
@@ -264,7 +231,8 @@ async function reloadPlugins(options = {}) {
     const loaded = [];
     for (const entry of entries) {
         try {
-            const plugin = await loadPlugin(entry.slug, entry.version, { forceReload });
+            const requestedVersion = versionMode === 'latest' ? undefined : entry.version;
+            const plugin = await loadPlugin(entry.slug, requestedVersion, { forceReload });
             if (plugin) {
                 loaded.push({
                     slug: plugin.metadata?.slug || entry.slug,
@@ -276,12 +244,8 @@ async function reloadPlugins(options = {}) {
         }
     }
 
-    if (!plugins.button) {
-        await loadDefaults();
-    }
-
     return {
-        mode: 'package',
+        mode: versionMode,
         count: loaded.length,
         entries: loaded,
     };

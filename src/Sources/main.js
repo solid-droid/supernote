@@ -1,5 +1,5 @@
 import './main.css';
-import { loadDefaults, getPlugins, updatePlugins, reloadPlugins } from '../Services/Plugin/PluginService.js';
+import { loadDefaults, getPlugins, reloadPlugins } from '../Services/Plugin/PluginService.js';
 
 export async function start() {
     await loadDefaults();
@@ -128,50 +128,44 @@ async function loadsamplebody() {
     }
     });
 
-    const update_plugins_button = createActionButton({
-        label: 'Update Plugins',
+    const reload_latest_versions_button = createActionButton({
+        label: 'Reload UI (Latest Versions)',
         variant: 'secondary',
         onClick: async () => {
         try {
-            logToOutput(
-                'Generating manifest and reloading plugins from plugin-package...',
-                'info'
-            );
-            const result = await updatePlugins({
-                filename: 'plugin-package.generated.js',
-            });
-
             const reloadResult = await reloadPlugins({
+                versionMode: 'latest',
                 forceReload: true,
             });
 
             await loadsamplebody();
             await Tauri.services.notify(
-                `Plugin package generated (${result.mode}) with ${result.count} entries. Reloaded ${reloadResult.count} plugins and refreshed UI.`,
+                `Reloaded ${reloadResult.count} configured plugins using latest available versions.`,
                 { title: 'Plugins Updated', kind: 'info' }
             );
         } catch (error) {
-            logToOutput(`Plugin update failed: ${error?.message || error}`, 'error');
+            logToOutput(`Latest-version UI reload failed: ${error?.message || error}`, 'error');
         }
     }
     });
 
-    const reload_ui_button = createActionButton({
-        label: 'Reload UI',
+    const reload_configured_versions_button = createActionButton({
+        label: 'Reload UI (Configured Versions)',
         variant: 'secondary',
         onClick: async () => {
         try {
             const reloadResult = await reloadPlugins({
+                versionMode: 'configured',
                 forceReload: true,
             });
 
             await loadsamplebody();
             await Tauri.services.notify(
-                `UI reloaded with ${reloadResult.count} plugins (${reloadResult.mode}).`,
+                `Reloaded ${reloadResult.count} configured plugins using package versions.`,
                 { title: 'UI Reloaded', kind: 'info' }
             );
         } catch (error) {
-            logToOutput(`UI reload failed: ${error?.message || error}`, 'error');
+            logToOutput(`Configured-version UI reload failed: ${error?.message || error}`, 'error');
         }
     }
     });
@@ -183,8 +177,8 @@ async function loadsamplebody() {
             list_sidecars_button,
             kill_sidecars_button, 
             greet_button,
-            update_plugins_button,
-            reload_ui_button
+            reload_latest_versions_button,
+            reload_configured_versions_button
         ),
         output
     );
