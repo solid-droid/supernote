@@ -41,8 +41,31 @@
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
-        padding: 20px;
+        padding: 12px 20px 20px;
         justify-content: center;
+    }
+
+    .plugin-server-section {
+        width: min(860px, calc(100% - 24px));
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 12px;
+    }
+
+    .plugin-server-label {
+        font-size: 12px;
+        opacity: 0.85;
+    }
+
+    .plugin-server-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #555;
+        background: #111;
+        color: #ddd;
+        font-size: 13px;
     }
 
     #output {

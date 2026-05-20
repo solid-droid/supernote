@@ -15,7 +15,7 @@ function resolveInitialPluginServerUrl() {
     let base = explicitUrl;
     if (!base) {
         const host = window.location.hostname;
-        if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'tauri.localhost') {
             base = `http://${host}:3001`;
         }
     }
@@ -26,7 +26,7 @@ function resolveInitialPluginServerUrl() {
     if (/Android/i.test(navigator.userAgent)) {
         try {
             const parsed = new URL(base);
-            if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+            if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === 'tauri.localhost') {
                 parsed.hostname = '10.0.2.2';
                 return normalizeBaseUrl(parsed.toString());
             }
@@ -95,10 +95,20 @@ function getPackagePluginEntries() {
 
 async function fetchPluginMetadata(slug, version) {
     const versionSuffix = version ? `/${version}` : '';
-    const response = await fetch(buildPluginServerUrl(`/plugins/${slug}${versionSuffix}`));
+    const requestUrl = buildPluginServerUrl(`/plugins/${slug}${versionSuffix}`);
+    const response = await fetch(requestUrl);
 
     if (!response.ok) {
         throw new Error(`Failed to fetch plugin metadata for ${slug}${version ? `@${version}` : ''}`);
+    }
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('application/json')) {
+        const body = await response.text();
+        const bodyPreview = body.slice(0, 120).replace(/\s+/g, ' ');
+        throw new Error(
+            `Invalid plugin metadata response from ${requestUrl}. Expected JSON, got ${contentType || 'unknown'}: ${bodyPreview}`
+        );
     }
 
     const payload = await response.json();

@@ -1,5 +1,11 @@
 import './main.css';
-import { loadDefaults, getPlugins, reloadPlugins } from '../Services/Plugin/PluginService.js';
+import {
+    loadDefaults,
+    getPlugins,
+    reloadPlugins,
+    getPluginServerUrl,
+    setPluginServerUrl,
+} from '../Services/Plugin/PluginService.js';
 
 export async function start() {
     await loadDefaults();
@@ -30,6 +36,13 @@ function createBasicUI() {
 
 async function loadsamplebody() {
     const { Tauri, Log } = window.CHAMBER;
+    const pluginServerInput = $('<input type="text" class="plugin-server-input" />');
+    pluginServerInput.val(getPluginServerUrl());
+
+    const pluginServerSection = $('<div class="plugin-server-section"></div>').append(
+        $('<div class="plugin-server-label">Plugin Server URL</div>'),
+        pluginServerInput
+    );
     
     const output = $('<div id="output"></div>');
 
@@ -178,7 +191,65 @@ async function loadsamplebody() {
     }
     });
 
+    const apply_plugin_server_button = createActionButton({
+        label: 'Apply Plugin Server URL',
+        variant: 'secondary',
+        onClick: async () => {
+        try {
+            const requestedUrl = String(pluginServerInput.val() || '').trim();
+            const appliedUrl = setPluginServerUrl(requestedUrl);
+            pluginServerInput.val(appliedUrl);
+
+            await Tauri.services.notify(
+                `Plugin server URL saved:\n${appliedUrl}\n\nTip: tap a reload button to re-fetch plugins using this URL.`,
+                { title: 'Plugin Server Updated', kind: 'info' }
+            );
+        } catch (error) {
+            logToOutput(`Failed to apply plugin server URL: ${error?.message || error}`, 'error');
+        }
+    }
+    });
+
+    const test_plugin_server_button = createActionButton({
+        label: 'Test Plugin Server URL',
+        variant: 'secondary',
+        onClick: async () => {
+        try {
+            const requestedUrl = String(pluginServerInput.val() || '').trim();
+            const appliedUrl = setPluginServerUrl(requestedUrl);
+            pluginServerInput.val(appliedUrl);
+
+            const testUrl = `${appliedUrl}/plugins`;
+            const response = await fetch(testUrl, { method: 'GET' });
+
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} from ${testUrl}`);
+            }
+
+            if (!contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON, got ${contentType || 'unknown'}: ${text.slice(0, 120)}`);
+            }
+
+            const payload = await response.json();
+            const count = Array.isArray(payload) ? payload.length : 1;
+
+            await Tauri.services.notify(
+                `Plugin server is reachable.\nURL: ${appliedUrl}\n/plugins returned ${count} item(s).`,
+                { title: 'Plugin Server Test Passed', kind: 'info' }
+            );
+        } catch (error) {
+            await Tauri.services.notify(
+                `Plugin server test failed.\n${error?.message || error}`,
+                { title: 'Plugin Server Test Failed', kind: 'error' }
+            );
+        }
+    }
+    });
+
     DOM.body.empty().append(
+        pluginServerSection,
         $('<div class="controls"></div>').append(
             bun_sidecar_button, 
             python_sidecar_button, 
@@ -186,7 +257,9 @@ async function loadsamplebody() {
             kill_sidecars_button, 
             greet_button,
             reload_latest_versions_button,
-            reload_configured_versions_button
+            reload_configured_versions_button,
+            apply_plugin_server_button,
+            test_plugin_server_button
         ),
         output
     );
