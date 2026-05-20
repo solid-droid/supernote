@@ -133,24 +133,15 @@ async function loadsamplebody() {
         variant: 'secondary',
         onClick: async () => {
         try {
-            const configuredChoice = await Tauri.services.notify(
-                'Generate plugin package using currently configured versions?\nChoose No to use latest versions from server.',
-                { title: 'Update Plugins', kind: 'info' },
-                true
-            );
-
-            const useConfiguredVersions = !!configuredChoice;
             logToOutput(
-                `Refreshing plugin metadata and generating manifest (${useConfiguredVersions ? 'configured' : 'latest'})...`,
+                'Generating manifest and reloading plugins from plugin-package...',
                 'info'
             );
             const result = await updatePlugins({
-                useConfiguredVersions,
                 filename: 'plugin-package.generated.js',
             });
 
             const reloadResult = await reloadPlugins({
-                useConfiguredVersions,
                 forceReload: true,
             });
 
@@ -170,15 +161,7 @@ async function loadsamplebody() {
         variant: 'secondary',
         onClick: async () => {
         try {
-            const configuredChoice = await Tauri.services.notify(
-                'Reload UI using currently configured plugin versions?\nChoose No to reload latest versions from server.',
-                { title: 'Reload UI', kind: 'info' },
-                true
-            );
-
-            const useConfiguredVersions = !!configuredChoice;
             const reloadResult = await reloadPlugins({
-                useConfiguredVersions,
                 forceReload: true,
             });
 

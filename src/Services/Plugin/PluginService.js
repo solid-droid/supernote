@@ -22,13 +22,14 @@ function clearPluginRuntimeState() {
     pluginLinks.forEach((link) => link.remove());
 }
 
-async function fetchAllPluginsLatest() {
-    const response = await fetch(`${PLUGIN_SERVER_URL}/plugins`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch latest plugins list.');
-    }
-    const payload = await response.json();
-    return Array.isArray(payload) ? payload : [];
+function getPackagePluginEntries() {
+    const packageEntries = Array.isArray(defaultPluginPackage?.plugins)
+        ? defaultPluginPackage.plugins
+        : [];
+
+    return packageEntries
+        .map((entry) => ({ slug: entry?.slug, version: entry?.version }))
+        .filter((entry) => entry.slug);
 }
 
 async function fetchPluginMetadata(slug, version) {
@@ -47,6 +48,20 @@ async function fetchPluginMetadata(slug, version) {
     }
 
     return payload;
+}
+
+async function fetchPluginMetadataWithFallback(slug, version) {
+    try {
+        return await fetchPluginMetadata(slug, version);
+    } catch (error) {
+        // If a pinned version is missing after versioning changes, fallback to latest.
+        if (version) {
+            console.warn(`Falling back to latest for plugin ${slug}; requested version ${version} is unavailable.`);
+            return fetchPluginMetadata(slug);
+        }
+
+        throw error;
+    }
 }
 
 async function fetchPluginMetadataByUrl(url) {
@@ -185,14 +200,12 @@ async function loadPluginByMetadata(metadata, fallbackSlug, options = {}) {
 }
 
 async function loadPlugin(slug, version, options = {}) {
-    const metadata = await fetchPluginMetadata(slug, version);
+    const metadata = await fetchPluginMetadataWithFallback(slug, version);
     return loadPluginByMetadata(metadata, slug, options);
 }
 
 async function loadDefaults() {
-    const packageEntries = Array.isArray(defaultPluginPackage?.plugins)
-        ? defaultPluginPackage.plugins
-        : [];
+    const packageEntries = getPackagePluginEntries();
 
     // Prefer explicit package list for testing/default bootstrap.
     for (const entry of packageEntries) {
@@ -243,14 +256,8 @@ async function loadDefaults() {
 }
 
 async function reloadPlugins(options = {}) {
-    const useConfiguredVersions = !!options.useConfiguredVersions;
     const forceReload = options.forceReload !== false;
-
-    const entries = useConfiguredVersions
-        ? getConfiguredPluginVersions()
-        : (await fetchAllPluginsLatest())
-            .map((meta) => ({ slug: meta.slug, version: meta.version }))
-            .filter((entry) => entry.slug && entry.version);
+    const entries = getPackagePluginEntries();
 
     clearPluginRuntimeState();
 
@@ -259,7 +266,10 @@ async function reloadPlugins(options = {}) {
         try {
             const plugin = await loadPlugin(entry.slug, entry.version, { forceReload });
             if (plugin) {
-                loaded.push({ slug: entry.slug, version: entry.version });
+                loaded.push({
+                    slug: plugin.metadata?.slug || entry.slug,
+                    version: plugin.metadata?.version || entry.version,
+                });
             }
         } catch (error) {
             console.warn(`Failed to reload plugin ${entry.slug}:`, error);
@@ -271,18 +281,10 @@ async function reloadPlugins(options = {}) {
     }
 
     return {
-        mode: useConfiguredVersions ? 'configured' : 'latest',
+        mode: 'package',
         count: loaded.length,
         entries: loaded,
     };
-}
-
-function getConfiguredPluginVersions() {
-    return Object.values(plugins)
-        .map((plugin) => plugin?.metadata)
-        .filter(Boolean)
-        .map((meta) => ({ slug: meta.slug, version: meta.version }))
-        .filter((entry) => entry.slug && entry.version);
 }
 
 function buildPluginManifestModule(entries, options = {}) {
@@ -316,24 +318,17 @@ function downloadTextFile(filename, content, mimeType = 'application/javascript'
 }
 
 async function updatePlugins(options = {}) {
-    const useConfiguredVersions = !!options.useConfiguredVersions;
-    const latest = await fetchAllPluginsLatest();
-
-    const entries = useConfiguredVersions
-        ? getConfiguredPluginVersions()
-        : latest
-            .map((meta) => ({ slug: meta.slug, version: meta.version }))
-            .filter((entry) => entry.slug && entry.version);
+    const entries = getPackagePluginEntries();
 
     const moduleCode = buildPluginManifestModule(entries, {
-        mode: useConfiguredVersions ? 'configured' : 'latest',
+        mode: 'package',
     });
 
     const filename = options.filename || 'plugin-package.generated.js';
     downloadTextFile(filename, moduleCode);
 
     return {
-        mode: useConfiguredVersions ? 'configured' : 'latest',
+        mode: 'package',
         count: entries.length,
         filename,
         entries,
