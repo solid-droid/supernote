@@ -1,5 +1,5 @@
 import './main.css';
-import { loadDefaults, getPlugins, updatePlugins } from '../Services/Plugin/PluginService.js';
+import { loadDefaults, getPlugins, updatePlugins, reloadPlugins } from '../Services/Plugin/PluginService.js';
 
 export async function start() {
     await loadDefaults();
@@ -148,12 +148,47 @@ async function loadsamplebody() {
                 useConfiguredVersions,
                 filename: 'plugin-package.generated.js',
             });
-            logToOutput(
-                `Plugin package generated (${result.mode}) with ${result.count} entries: ${result.filename}`,
-                'success'
+
+            const reloadResult = await reloadPlugins({
+                useConfiguredVersions,
+                forceReload: true,
+            });
+
+            await loadsamplebody();
+            await Tauri.services.notify(
+                `Plugin package generated (${result.mode}) with ${result.count} entries. Reloaded ${reloadResult.count} plugins and refreshed UI.`,
+                { title: 'Plugins Updated', kind: 'info' }
             );
         } catch (error) {
             logToOutput(`Plugin update failed: ${error?.message || error}`, 'error');
+        }
+    }
+    });
+
+    const reload_ui_button = createActionButton({
+        label: 'Reload UI',
+        variant: 'secondary',
+        onClick: async () => {
+        try {
+            const configuredChoice = await Tauri.services.notify(
+                'Reload UI using currently configured plugin versions?\nChoose No to reload latest versions from server.',
+                { title: 'Reload UI', kind: 'info' },
+                true
+            );
+
+            const useConfiguredVersions = !!configuredChoice;
+            const reloadResult = await reloadPlugins({
+                useConfiguredVersions,
+                forceReload: true,
+            });
+
+            await loadsamplebody();
+            await Tauri.services.notify(
+                `UI reloaded with ${reloadResult.count} plugins (${reloadResult.mode}).`,
+                { title: 'UI Reloaded', kind: 'info' }
+            );
+        } catch (error) {
+            logToOutput(`UI reload failed: ${error?.message || error}`, 'error');
         }
     }
     });
@@ -165,7 +200,8 @@ async function loadsamplebody() {
             list_sidecars_button,
             kill_sidecars_button, 
             greet_button,
-            update_plugins_button
+            update_plugins_button,
+            reload_ui_button
         ),
         output
     );

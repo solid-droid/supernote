@@ -4,6 +4,24 @@ import defaultPluginPackage from './plugin-package.js';
 let plugins = {};
 const loadedStyleHrefs = new Set();
 
+function withCacheBuster(url) {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        parsed.searchParams.set('_t', String(Date.now()));
+        return parsed.toString();
+    } catch {
+        return `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    }
+}
+
+function clearPluginRuntimeState() {
+    plugins = {};
+    loadedStyleHrefs.clear();
+
+    const pluginLinks = document.querySelectorAll('link[data-plugin-style="true"]');
+    pluginLinks.forEach((link) => link.remove());
+}
+
 async function fetchAllPluginsLatest() {
     const response = await fetch(`${PLUGIN_SERVER_URL}/plugins`);
     if (!response.ok) {
@@ -110,7 +128,8 @@ function resolveAssetHref(assetPath, metadata) {
     return `${PLUGIN_SERVER_URL}/${assetPath.replace(/^\/+/, '')}`;
 }
 
-function loadCssAssets(metadata) {
+function loadCssAssets(metadata, options = {}) {
+    const forceReload = !!options.forceReload;
     const files = Array.isArray(metadata?.Files) ? metadata.Files : [];
     const cssFiles = files.filter((f) => {
         if (!f || typeof f.path !== 'string') {
@@ -121,30 +140,40 @@ function loadCssAssets(metadata) {
 
     for (const cssFile of cssFiles) {
         const href = resolveAssetHref(cssFile.path, metadata);
-        if (!href || loadedStyleHrefs.has(href)) {
+        if (!href) {
             continue;
         }
 
+        if (!forceReload && loadedStyleHrefs.has(href)) {
+            continue;
+        }
+
+        const finalHref = forceReload ? withCacheBuster(href) : href;
+
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = href;
+        link.href = finalHref;
+        link.dataset.pluginStyle = 'true';
         document.head.appendChild(link);
         loadedStyleHrefs.add(href);
     }
 }
 
-async function loadPluginByMetadata(metadata, fallbackSlug) {
+async function loadPluginByMetadata(metadata, fallbackSlug, options = {}) {
     if (!metadata) {
         return null;
     }
 
+    const forceReload = !!options.forceReload;
+
     const entry = metadata.entry || metadata.module || metadata.url || metadata.path || inferEntryFromLegacy(metadata);
     const moduleSpecifier = resolveModuleSpecifier(entry);
+    const importSpecifier = forceReload ? withCacheBuster(moduleSpecifier) : moduleSpecifier;
 
-    const loadedModule = await import(/* @vite-ignore */ moduleSpecifier);
+    const loadedModule = await import(/* @vite-ignore */ importSpecifier);
     const pluginImpl = loadedModule.default || loadedModule.plugin || loadedModule;
 
-    loadCssAssets(metadata);
+    loadCssAssets(metadata, { forceReload });
 
     const key = metadata.slug || fallbackSlug;
     plugins[key] = {
@@ -155,9 +184,9 @@ async function loadPluginByMetadata(metadata, fallbackSlug) {
     return plugins[key];
 }
 
-async function loadPlugin(slug, version) {
+async function loadPlugin(slug, version, options = {}) {
     const metadata = await fetchPluginMetadata(slug, version);
-    return loadPluginByMetadata(metadata, slug);
+    return loadPluginByMetadata(metadata, slug, options);
 }
 
 async function loadDefaults() {
@@ -211,6 +240,41 @@ async function loadDefaults() {
     if (buttonWidget) {
         plugins.button = buttonWidget;
     }
+}
+
+async function reloadPlugins(options = {}) {
+    const useConfiguredVersions = !!options.useConfiguredVersions;
+    const forceReload = options.forceReload !== false;
+
+    const entries = useConfiguredVersions
+        ? getConfiguredPluginVersions()
+        : (await fetchAllPluginsLatest())
+            .map((meta) => ({ slug: meta.slug, version: meta.version }))
+            .filter((entry) => entry.slug && entry.version);
+
+    clearPluginRuntimeState();
+
+    const loaded = [];
+    for (const entry of entries) {
+        try {
+            const plugin = await loadPlugin(entry.slug, entry.version, { forceReload });
+            if (plugin) {
+                loaded.push({ slug: entry.slug, version: entry.version });
+            }
+        } catch (error) {
+            console.warn(`Failed to reload plugin ${entry.slug}:`, error);
+        }
+    }
+
+    if (!plugins.button) {
+        await loadDefaults();
+    }
+
+    return {
+        mode: useConfiguredVersions ? 'configured' : 'latest',
+        count: loaded.length,
+        entries: loaded,
+    };
 }
 
 function getConfiguredPluginVersions() {
@@ -285,4 +349,5 @@ export {
     loadDefaults,
     getPlugins,
     updatePlugins,
+    reloadPlugins,
 }
