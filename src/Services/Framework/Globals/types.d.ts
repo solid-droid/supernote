@@ -9,10 +9,20 @@ declare global {
         jQuery: any;
 
         /** Global Namespace for your Framework */
-        CHAMBER: {
+        Supernote: {
             Tauri: ITauri;
-            UI: IUI;
             Log: ILog;
+        };
+
+        Superhub: {
+            Widgets: Record<string, Function>;
+            cache: {
+                byKey: Record<string, any>;
+                bySlug: Record<string, any>;
+                byAlias: Record<string, any>;
+            };
+            getDependency(reference?: string): any;
+            getPlugins?: () => Record<string, any>;
         };
 
         __TAURI__: {
@@ -26,12 +36,22 @@ declare global {
 
     }
 
-    // Allow using $ and CHAMBER directly without 'window.'
+    // Allow using globals directly without 'window.'
     const $: any;
     const jQuery: any;
-    const CHAMBER: {
+    const Supernote: {
         Tauri: ITauri;
         Log: ILog;
+    };
+    const Superhub: {
+        Widgets: Record<string, Function>;
+        cache: {
+            byKey: Record<string, any>;
+            bySlug: Record<string, any>;
+            byAlias: Record<string, any>;
+        };
+        getDependency(reference?: string): any;
+        getPlugins?: () => Record<string, any>;
     };
 }
 

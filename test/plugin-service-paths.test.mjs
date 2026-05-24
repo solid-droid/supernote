@@ -17,7 +17,10 @@ function createStorage() {
 }
 
 globalThis.localStorage = createStorage();
-globalThis.navigator = { userAgent: 'NodeTest' };
+Object.defineProperty(globalThis, 'navigator', {
+    value: { userAgent: 'NodeTest' },
+    configurable: true,
+});
 globalThis.window = {
     location: {
         hostname: 'localhost',
@@ -28,25 +31,32 @@ globalThis.window = {
 const pluginService = await import('../src/Services/Plugin/PluginService.js');
 const { __testing } = pluginService;
 
-test('buildVariantsQuery builds encoded variants query string', () => {
-    const query = __testing.buildVariantsQuery(['primary', 'secondary']);
-    assert.equal(query, 'variants=primary%2Csecondary');
-});
-
-test('resolveModuleSpecifier keeps absolute http url', () => {
-    const resolved = __testing.resolveModuleSpecifier('https://example.com/plugin.js');
-    assert.equal(resolved, 'https://example.com/plugin.js');
-});
-
-test('resolveStyleAssets maps style entries from metadata exports', () => {
-    const styles = __testing.resolveStyleAssets({
-        exports: {
-            styles: [
-                { path: '/plugin-assets/button/Button.css' },
-                { url: 'https://cdn.example.com/base.css' },
-            ],
-        },
+test('parseWidgetEntry maps object widget ref with alias to full Superhub slug', () => {
+    const parsed = __testing.parseWidgetEntry({
+        slug: 'design-system>Atom.button.icon@latest',
+        alias: 'IconButton',
     });
 
-    assert.deepEqual(styles, ['/plugin-assets/button/Button.css', 'https://cdn.example.com/base.css']);
+    assert.equal(parsed.path, 'design-system>Atom.button.icon');
+    assert.equal(parsed.versionToken, 'latest');
+    assert.equal(parsed.fullSlug, 'widget>design-system>Atom.button.icon');
+    assert.equal(parsed.isLatest, true);
+    assert.equal(parsed.alias, 'IconButton');
+});
+
+test('compareVersions sorts semantic versions correctly', () => {
+    assert.equal(__testing.compareVersions('1.2.0', '1.1.9') > 0, true);
+    assert.equal(__testing.compareVersions('2.0.0', '2.0.0'), 0);
+    assert.equal(__testing.compareVersions('1.0.0', '1.0.1') < 0, true);
+});
+
+test('shouldUseMinified prefers explicit package flag', () => {
+    assert.equal(__testing.shouldUseMinified({ minified: false }), false);
+    assert.equal(__testing.shouldUseMinified({ minified: true }), true);
+    assert.equal(__testing.shouldUseMinified({}), true);
+});
+
+test('buildPluginServerUrl composes clean paths', () => {
+    const value = __testing.buildPluginServerUrl('http://localhost:3005', '/meta/widget');
+    assert.equal(value, 'http://localhost:3005/meta/widget');
 });

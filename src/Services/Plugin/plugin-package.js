@@ -1,8 +1,9 @@
 export const pluginPackage = {
-  mode: 'default',
-  plugins: [
-    { slug: 'button', version: '1.0.0', variants: ['flat', 'bordered', 'icon', 'icon-text'] },
-    { slug: 'input', version: '1.0.0', variants: ['text', 'search', 'checkbox'] },
+  superhub: 'http://localhost:3005/',
+  minified: true,
+  widgets: [
+    {slug:'design-system>Atom.button@1.0.0', alias: 'Button'}, 
+    {slug:'design-system>Atom.button.icon@latest', alias: 'IconButton'},
   ]
 };
 
