@@ -8,6 +8,7 @@
     "build": "npm run build:sidecars && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "test": "node --test test/**/*.test.mjs",
     "build:sidecars": "node scripts/build-sidecars.js",
     "release": "node scripts/create-tag.js"
   },

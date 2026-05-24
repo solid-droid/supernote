@@ -17,9 +17,19 @@ async function loadGlobals() {
     window.$ = $;
     window.jQuery = $;
     
-    window.CHAMBER = {
+    window.Supernote = {
         Tauri,
         Log
+    };
+
+    window.Superhub = window.Superhub || {
+        Widgets: {},
+        cache: {
+            byKey: {},
+            bySlug: {},
+            byAlias: {},
+        },
+        getDependency: () => null,
     };
 }
 
