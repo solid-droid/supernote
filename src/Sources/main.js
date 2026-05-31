@@ -17,8 +17,10 @@ const DOM = {
     body: null,
     footer: null,
     reloadButton: null,
+    themeButton: null,
     reloadStatus: null,
     samplesHost: null,
+    currentTheme: 'DarkTheme',
 };
 
 function getWidget(alias) {
@@ -26,15 +28,17 @@ function getWidget(alias) {
 }
 
 function createBasicUI() {
-    DOM.root = $('#chamber-app');
+    DOM.root = $('#supernote');
 
     DOM.header = $('<div class="app-header" data-tauri-drag-region></div>');
     DOM.header.append('<div class="app-header-title">Supernote</div>');
     
     DOM.reloadButton = $('<button class="reload-plugins-button" type="button">Reload Plugins</button>');
+    DOM.themeButton = $('<button class="toggle-theme-button" type="button">Theme: Dark</button>');
     DOM.reloadStatus = $('<div class="reload-plugins-status">Ready</div>');
    
     DOM.header.append(DOM.reloadButton);
+    DOM.header.append(DOM.themeButton);
     DOM.header.append(DOM.reloadStatus);
     DOM.root.append(DOM.header);
     
@@ -48,6 +52,26 @@ function createBasicUI() {
     DOM.root.append(DOM.footer);
 
     DOM.reloadButton.on('click', onReloadPlugins);
+    DOM.themeButton.on('click', onToggleTheme);
+    applyThemeByAlias(DOM.currentTheme);
+}
+
+function getTheme(alias) {
+    return window.Superhub?.Themes?.[alias] || null;
+}
+
+async function applyThemeByAlias(alias) {
+    const theme = getTheme(alias);
+    if (typeof theme !== 'function') {
+        DOM.reloadStatus.text(`Theme ${alias} is not available.`);
+        return;
+    }
+
+    const applied = await theme({}, window.Superhub?.getDependency);
+    if (applied) {
+        DOM.currentTheme = alias;
+        DOM.themeButton.text(`Theme: ${alias === 'DarkTheme' ? 'Dark' : 'Light'}`);
+    }
 }
 
 async function loadsamplebody() {
@@ -106,6 +130,7 @@ async function onReloadPlugins() {
 
     try {
         const summary = await reloadPlugins({ forceReload: true });
+        await applyThemeByAlias(DOM.currentTheme);
         await loadsamplebody();
         DOM.reloadStatus.text(`Reloaded ${summary.count} plugin(s)`);
     } catch (error) {
@@ -113,4 +138,9 @@ async function onReloadPlugins() {
     } finally {
         DOM.reloadButton.prop('disabled', false);
     }
+}
+
+async function onToggleTheme() {
+    const nextTheme = DOM.currentTheme === 'DarkTheme' ? 'LightTheme' : 'DarkTheme';
+    await applyThemeByAlias(nextTheme);
 }

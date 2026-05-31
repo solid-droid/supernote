@@ -60,3 +60,11 @@ test('buildPluginServerUrl composes clean paths', () => {
     const value = __testing.buildPluginServerUrl('http://localhost:3005', '/meta/widget');
     assert.equal(value, 'http://localhost:3005/meta/widget');
 });
+
+test('parseThemeEntry accepts full theme-prefixed refs from widget metadata', () => {
+    const parsed = __testing.parseThemeEntry('theme>design-system>Color.Dark@1.0.0');
+
+    assert.equal(parsed.path, 'design-system>Color.Dark');
+    assert.equal(parsed.versionToken, '1.0.0');
+    assert.equal(parsed.fullSlug, 'theme>design-system>Color.Dark');
+});

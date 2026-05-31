@@ -1,4 +1,4 @@
-#chamber-app{
+#supernote{
     height: 100%;
     width: 100%;
     background-color: var(--color-background-1);
@@ -27,6 +27,18 @@
             padding: 0 10px;
             cursor: pointer;
             background: #a9bfdf;
+            color: #131927;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .toggle-theme-button {
+            height: 22px;
+            border: none;
+            border-radius: 6px;
+            padding: 0 10px;
+            cursor: pointer;
+            background: #8ca8cf;
             color: #131927;
             font-weight: 700;
             font-size: 11px;
